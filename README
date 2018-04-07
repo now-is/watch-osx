@@ -1,0 +1,42 @@
+Old code: watchers for OS X, of varying usefulness.
+
+Watch files and directories for changes, watch power events and USB events.
+
+The watcher for files and dirs, watch.c, works reasonably well on "many
+versions" of OS X.
+
+I did not ultimately use watchusb and watchpower a whole lot. Their behavior
+and output formats differ from watchfile and watchdir, but would be easy to
+change.
+
+watchfile, watchdir, and watch have similar behaviors. Usage:
+
+watchfile file1 [... file16]
+watchdir dir1 [... dir16]
+watch path1 [... path16]
+
+Each of these blocks and waits. At the first detected change to any of the specified
+paths, it prints a line of the form:
+
+eventlist<tab>path
+
+and exits.
+
+Eventlist is a |-separated list of events, often just one event. Examples:
+
+DELETE|LINK<tab>test
+DIRMOD<tab>/tmp/test.d/
+ATTRIB<tab>/tmp/touched
+
+
+Why?
+
+You could put watch commands in a loop to get various monitoring effects,
+recompile/"live reload" perhaps in combination with Applescript, restart
+services on wake via daemontools, etc. Many possibilities.
+
+There is no make, unfortunately. Edit build.sh and run.
+
+There are no guarantees, unfortunately.
+
+The code is adapted from Apple's ostensibly public pages. Let me know ...
