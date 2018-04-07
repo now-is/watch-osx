@@ -11,7 +11,7 @@
 #define NUM_EVENT_FDS   16
 #define NUM_EVENT_SLOTS 1
 
-void cb (
+void fsevent_cb (
     ConstFSEventStreamRef s,
     void *info,
     size_t num,
@@ -44,17 +44,16 @@ char *flagstring (int flags) {
 
 int watch_dirs (int num, CFStringRef dirs[]) {
     int rc = 0;
-#define die(e...) do { rc = ~0; fprintf(stderr, e); goto finally; } while (0)
 
     CFArrayRef paths = CFArrayCreate(NULL, (const void **)dirs, num, NULL);
 
     FSEventStreamRef stream = FSEventStreamCreate(
         NULL, // default memory allocator
-        &cb,
+        &fsevent_cb,
         NULL, // no cbinfo
         paths,
         kFSEventStreamEventIdSinceNow,
-        0.1, // we exit at the first event, no need to "debounce" cb
+        0.1, // we exit at the first event, no need to "debounce" fsevent_cb
         kFSEventStreamCreateFlagNone
     );
 
@@ -62,7 +61,6 @@ int watch_dirs (int num, CFStringRef dirs[]) {
     FSEventStreamStart(stream);
     CFRunLoopRun();
 
-finally:
     if (stream) FSEventStreamRelease(stream);
     return rc;
 }
@@ -71,7 +69,7 @@ finally:
  * https://developer.apple.com/library/mac/documentation/Darwin/Conceptual/FSEvents_ProgGuide/KernelQueues/KernelQueues.html
  */
 
-int watch_files (int num, struct kevent ev_fds []) {
+int watch_files (int num, struct kevent ev_fds[]) {
     int rc = 0;
 #define die(e...) do { rc = ~0; fprintf(stderr, e); goto finally; } while (0)
 
@@ -80,11 +78,9 @@ int watch_files (int num, struct kevent ev_fds []) {
     if ((kq = kqueue()) < 0)
         die("Could not open kernel queue : %s.\n", strerror(errno));
  
-    // handle NUM_EVENT_SLOTS events, i.e. first event
+
     // NULL means block indefinitely
-    int event_count = kevent(
-        kq, ev_fds, num, ev_data, NUM_EVENT_SLOTS, NULL
-    );
+    int event_count = kevent(kq, ev_fds, num, ev_data, NUM_EVENT_SLOTS, NULL);
 
     if ((event_count < 0) || (ev_data[0].flags == EV_ERROR))
         die("Event count %d : %s.\n", event_count, strerror(errno));
@@ -107,12 +103,14 @@ finally:
 
 int main (int argc, char **argv) {
     int rc = 0;
+	int num_files = 0;
+
 #define die(e...) do { rc = ~0; fprintf(stderr, e); goto finally; } while (0)
 
     if (argc < 2 || argc > 1 + NUM_EVENT_FDS)
         die("Usage: %s path1 [... path%d]\n", argv[0], NUM_EVENT_FDS);
 
-    int ev_fd = 0, num_dirs = 0, num_files = 0;
+    int ev_fd = 0, num_dirs = 0;
     struct stat st;
     struct kevent ev_fds[NUM_EVENT_FDS];
     CFStringRef dirs[NUM_EVENT_FDS];
@@ -121,7 +119,7 @@ int main (int argc, char **argv) {
     for (num = 1; num < argc; num++) {
 
         if (stat(argv[num], &st))
-            fprintf(stderr, "Ignoring %s : Could not determine type.\n", argv[num]);
+            fprintf(stderr, "Ignoring %s: Could not stat.\n", argv[num]);
 
         if (st.st_mode & S_IFDIR) {
             dirs[num_dirs] = CFStringCreateWithCString(NULL, argv[num], kCFStringEncodingUTF8);
@@ -175,6 +173,3 @@ finally:
     exit(rc);
 }
 
-int spawn (int f ()) {
-    return 0;
-}

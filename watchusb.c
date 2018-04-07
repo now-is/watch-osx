@@ -48,9 +48,6 @@ void DeviceNotification (void *refCon, io_service_t service, natural_t messageTy
 void DeviceAdded (void *refCon, io_iterator_t iterator) {
     kern_return_t       kr;
     io_service_t        usbDevice;
-    IOCFPlugInInterface **plugInInterface = NULL;
-    SInt32              score;
-    HRESULT             res;
 
     while ((usbDevice = IOIteratorNext(iterator))) {
         io_name_t       deviceName;
@@ -109,7 +106,6 @@ void SignalHandler (int sigraised) {
 int main (int argc, const char *argv[]) {
     CFMutableDictionaryRef  matchingDict;
     CFRunLoopSourceRef      runLoopSource;
-    CFNumberRef             numberRef;
     kern_return_t           kr;
     sig_t                   oldHandler;
 

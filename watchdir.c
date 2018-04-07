@@ -21,6 +21,8 @@ int main (int argc, char **argv) {
     int rc = 0;
 #define die(e...) do { rc = ~0; fprintf(stderr, e); goto finally; } while (0)
 
+    FSEventStreamRef stream = NULL;
+
     if (argc < 2 || argc > 1 + NUM_EVENT_FDS)
         die("Usage: %s dir1 [... dir%d]\n", argv[0], NUM_EVENT_FDS);
 
@@ -34,7 +36,7 @@ int main (int argc, char **argv) {
 
     CFArrayRef paths = CFArrayCreate(NULL, (const void **)dirs, num, NULL);
 
-    FSEventStreamRef stream = FSEventStreamCreate(
+    stream = FSEventStreamCreate(
         NULL, // default memory allocator
         &cb,
         NULL, // no cbinfo
